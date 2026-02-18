@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { getBenefitById } from "@/lib/mock-benefits";
+import { getBenefitByIdFromApi } from "@/lib/api";
 import { BenefitSummary } from "@/components/benefit/BenefitSummary";
 import { EligibilityCheck } from "@/components/benefit/EligibilityCheck";
 import { RequiredDocuments } from "@/components/benefit/RequiredDocuments";
-import { ActionButtons } from "@/components/benefit/ActionButtons";
 import { BenefitDetailClient } from "@/components/benefit/BenefitDetailClient";
 
 interface PageProps {
@@ -14,7 +13,7 @@ interface PageProps {
 
 export default async function BenefitDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const benefit = getBenefitById(id);
+  const benefit = await getBenefitByIdFromApi(id);
 
   if (!benefit) {
     notFound();
@@ -34,8 +33,12 @@ export default async function BenefitDetailPage({ params }: PageProps) {
       <main className="mx-auto max-w-lg px-4 pb-36 pt-6">
         <div className="space-y-4">
           <BenefitSummary benefit={benefit} />
-          <EligibilityCheck benefit={benefit} />
-          <RequiredDocuments benefit={benefit} />
+          {benefit.eligibilityChecklist.length > 0 && (
+            <EligibilityCheck benefit={benefit} />
+          )}
+          {benefit.requiredDocuments.length > 0 && (
+            <RequiredDocuments benefit={benefit} />
+          )}
           <BenefitDetailClient benefit={benefit} />
         </div>
       </main>

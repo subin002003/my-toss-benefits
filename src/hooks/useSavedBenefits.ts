@@ -1,45 +1,57 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Benefit } from "@/lib/types";
 
-const STORAGE_KEY = "toss-benefits-saved";
+const STORAGE_KEY = "toss-benefits-saved-v2";
 
 export function useSavedBenefits() {
-  const [savedIds, setSavedIdsState] = useState<string[]>([]);
+  const [savedBenefits, setSavedBenefits] = useState<Benefit[]>([]);
   const [mounted, setMounted] = useState(false);
+
+  const savedIds = useMemo(() => savedBenefits.map((b) => b.id), [savedBenefits]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      setSavedIdsState(raw ? JSON.parse(raw) : []);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setSavedBenefits(parsed);
+        }
+      }
     } catch {
-      setSavedIdsState([]);
+      // ignore
     }
     setMounted(true);
   }, []);
 
-  const persist = useCallback((ids: string[]) => {
-    setSavedIdsState(ids);
+  const persist = useCallback((benefits: Benefit[]) => {
+    setSavedBenefits(benefits);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(benefits));
     } catch {
       // ignore
     }
   }, []);
 
   const toggleSaved = useCallback(
-    (id: string) => {
+    (benefit: Benefit) => {
       if (!mounted) return;
-      const next = savedIds.includes(id) ? savedIds.filter((s) => s !== id) : [...savedIds, id];
-      persist(next);
+      const exists = savedBenefits.some((b) => b.id === benefit.id);
+      if (exists) {
+        persist(savedBenefits.filter((b) => b.id !== benefit.id));
+      } else {
+        persist([...savedBenefits, benefit]);
+      }
     },
-    [mounted, savedIds, persist]
+    [mounted, savedBenefits, persist],
   );
 
   const isSaved = useCallback(
     (id: string) => mounted && savedIds.includes(id),
-    [mounted, savedIds]
+    [mounted, savedIds],
   );
 
-  return { savedIds, toggleSaved, isSaved, mounted };
+  return { savedIds, savedBenefits, toggleSaved, isSaved, mounted };
 }

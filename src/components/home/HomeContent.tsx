@@ -1,45 +1,48 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { useSavedBenefits } from "@/hooks/useSavedBenefits";
-import { filterBenefits } from "@/lib/filter-benefits";
-import { REGION_OPTIONS, CATEGORY_OPTIONS } from "@/lib/types";
-import type { RegionFilter, CategoryFilter } from "@/lib/types";
 import { QuickFilter } from "./QuickFilter";
+import { SortSelector } from "./SortSelector";
 import { BenefitList } from "./BenefitList";
-import type { Benefit } from "@/lib/types";
+import { Pagination } from "./Pagination";
+import type {
+  Benefit,
+  FieldFilter,
+  SupportTypeFilter,
+  UserTypeFilter,
+  SortOption,
+} from "@/lib/types";
 
 interface HomeContentProps {
-  allBenefits: Benefit[];
+  benefits: Benefit[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  field: FieldFilter;
+  supportType: SupportTypeFilter;
+  userType: UserTypeFilter;
+  keyword: string;
+  sort: SortOption;
 }
 
-export function HomeContent({ allBenefits }: HomeContentProps) {
+export function HomeContent({
+  benefits,
+  currentPage,
+  totalPages,
+  totalCount,
+  field,
+  supportType,
+  userType,
+  keyword,
+  sort,
+}: HomeContentProps) {
   const { savedIds, toggleSaved, mounted } = useSavedBenefits();
-  const [region, setRegion] = useState<RegionFilter>(REGION_OPTIONS[0]);
-  const [category, setCategory] = useState<CategoryFilter>(CATEGORY_OPTIONS[0]);
 
-  const filtered = useMemo(
-    () => filterBenefits(allBenefits, region, category),
-    [allBenefits, region, category]
-  );
-
-  const sortedFiltered = useMemo(
-    () =>
-      [...filtered].sort((a, b) => {
-        const aDeadline = a.deadline ?? "";
-        const bDeadline = b.deadline ?? "";
-        if (aDeadline && bDeadline) return aDeadline < bDeadline ? -1 : 1;
-        if (aDeadline) return -1;
-        if (bDeadline) return 1;
-        return (b.popularity === "high" ? 1 : 0) - (a.popularity === "high" ? 1 : 0);
-      }),
-    [filtered]
-  );
-
-  const count = filtered.length;
+  const isFiltered =
+    field !== "전체" || supportType !== "전체" || userType !== "전체" || keyword !== "";
   const greeting =
-    count > 0
-      ? `받을 수 있는 혜택이 ${count}건 있어요`
+    totalCount > 0
+      ? `받을 수 있는 혜택이 ${totalCount.toLocaleString()}건 있어요`
       : "조건에 맞는 혜택이 없어요. 필터를 바꿔 보세요.";
 
   return (
@@ -48,24 +51,49 @@ export function HomeContent({ allBenefits }: HomeContentProps) {
         {mounted ? greeting : "혜택을 불러오는 중..."}
       </h1>
       <p className="mb-4 text-sm text-gray-500">
-        지역·대상을 선택하면 맞춤 혜택을 볼 수 있어요.
+        분야·지원 유형·대상을 선택하거나 키워드로 검색해 보세요.
       </p>
 
       <div className="mb-6">
         <QuickFilter
-          region={region}
-          category={category}
-          onRegionChange={setRegion}
-          onCategoryChange={setCategory}
+          field={field}
+          supportType={supportType}
+          userType={userType}
+          keyword={keyword}
+          sort={sort}
+        />
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-500">
+          {isFiltered
+            ? `검색 결과 ${totalCount.toLocaleString()}건`
+            : `${currentPage} / ${totalPages} 페이지`}
+        </p>
+        <SortSelector
+          sort={sort}
+          field={field}
+          supportType={supportType}
+          userType={userType}
+          keyword={keyword}
         />
       </div>
 
       <BenefitList
-        benefits={sortedFiltered}
+        benefits={benefits}
         savedIds={savedIds}
         onToggleSave={mounted ? toggleSaved : undefined}
-        sectionTitle={region !== "전체" || category !== "전체" ? "필터 결과" : "전체 추천"}
         showDeadline
+      />
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        field={field}
+        supportType={supportType}
+        userType={userType}
+        keyword={keyword}
+        sort={sort}
       />
     </>
   );

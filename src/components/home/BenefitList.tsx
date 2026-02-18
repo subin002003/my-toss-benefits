@@ -7,7 +7,7 @@ import type { Benefit } from "@/lib/types";
 interface BenefitListProps {
   benefits: Benefit[];
   savedIds?: string[];
-  onToggleSave?: (id: string) => void;
+  onToggleSave?: (benefit: Benefit) => void;
   sectionTitle?: string;
   showDeadline?: boolean;
 }

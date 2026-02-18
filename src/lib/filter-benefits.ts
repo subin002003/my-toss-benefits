@@ -1,15 +1,15 @@
-import type { Benefit, RegionFilter, CategoryFilter } from "./types";
+import type { Benefit, FieldFilter, UserTypeFilter } from "./types";
 
 export function filterBenefits(
   benefits: Benefit[],
-  region: RegionFilter,
-  category: CategoryFilter
+  field: FieldFilter,
+  userType: UserTypeFilter
 ): Benefit[] {
   return benefits.filter((b) => {
-    const matchRegion =
-      region === "전체" || b.region === region;
-    const matchCategory =
-      category === "전체" || b.category === category;
-    return matchRegion && matchCategory;
+    const matchField =
+      field === "전체" || b.serviceField === field;
+    const matchUserType =
+      userType === "전체" || b.userType === userType;
+    return matchField && matchUserType;
   });
 }
