@@ -1,32 +1,76 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import {
+  REGION_OPTIONS,
+  CATEGORY_OPTIONS,
+  type RegionFilter,
+  type CategoryFilter,
+} from "@/lib/types";
 
 interface QuickFilterProps {
-  region: string;
-  age: string;
-  target: string;
-  onEdit?: () => void;
+  region: RegionFilter;
+  category: CategoryFilter;
+  onRegionChange: (value: RegionFilter) => void;
+  onCategoryChange: (value: CategoryFilter) => void;
 }
 
-export function QuickFilter({ region, age, target, onEdit }: QuickFilterProps) {
+function Chip<T extends string>({
+  label,
+  isSelected,
+  onClick,
+}: {
+  label: T;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
-      onClick={onEdit}
-      className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition-colors hover:border-gray-300 hover:bg-gray-50"
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+        isSelected ? "" : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+      }`}
+      style={isSelected ? { backgroundColor: "var(--toss-blue)", color: "white" } : undefined}
     >
-      <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-        <span className="font-medium text-gray-900">지역</span>
-        <span>{region}</span>
-        <span className="text-gray-300">|</span>
-        <span className="font-medium text-gray-900">나이</span>
-        <span>{age}</span>
-        <span className="text-gray-300">|</span>
-        <span className="font-medium text-gray-900">대상</span>
-        <span>{target}</span>
-      </div>
-      <ChevronDown className="h-5 w-5 shrink-0 text-gray-400" />
+      {label}
     </button>
+  );
+}
+
+export function QuickFilter({
+  region,
+  category,
+  onRegionChange,
+  onCategoryChange,
+}: QuickFilterProps) {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className="mb-3">
+        <p className="mb-2 text-xs font-medium text-gray-500">지역</p>
+        <div className="flex flex-wrap gap-2">
+          {REGION_OPTIONS.map((opt) => (
+            <Chip
+              key={opt}
+              label={opt}
+              isSelected={region === opt}
+              onClick={() => onRegionChange(opt)}
+            />
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-medium text-gray-500">대상</p>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORY_OPTIONS.map((opt) => (
+            <Chip
+              key={opt}
+              label={opt}
+              isSelected={category === opt}
+              onClick={() => onCategoryChange(opt)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,35 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSavedBenefits } from "@/hooks/useSavedBenefits";
+import { filterBenefits } from "@/lib/filter-benefits";
+import { REGION_OPTIONS, CATEGORY_OPTIONS } from "@/lib/types";
+import type { RegionFilter, CategoryFilter } from "@/lib/types";
 import { QuickFilter } from "./QuickFilter";
 import { BenefitList } from "./BenefitList";
 import type { Benefit } from "@/lib/types";
 
 interface HomeContentProps {
-  popularBenefits: Benefit[];
-  deadlineSoonBenefits: Benefit[];
   allBenefits: Benefit[];
 }
 
-const DEFAULT_REGION = "서울";
-const DEFAULT_AGE = "20대";
-const DEFAULT_TARGET = "청년";
-
-export function HomeContent({
-  popularBenefits,
-  deadlineSoonBenefits,
-  allBenefits,
-}: HomeContentProps) {
+export function HomeContent({ allBenefits }: HomeContentProps) {
   const { savedIds, toggleSaved, mounted } = useSavedBenefits();
-  const [region] = useState(DEFAULT_REGION);
-  const [age] = useState(DEFAULT_AGE);
-  const [target] = useState(DEFAULT_TARGET);
+  const [region, setRegion] = useState<RegionFilter>(REGION_OPTIONS[0]);
+  const [category, setCategory] = useState<CategoryFilter>(CATEGORY_OPTIONS[0]);
 
-  const count = allBenefits.length;
-  const greeting = count > 0
-    ? `받을 수 있는 혜택이 ${count}건 있어요`
-    : "조건에 맞는 혜택을 찾아볼게요";
+  const filtered = useMemo(
+    () => filterBenefits(allBenefits, region, category),
+    [allBenefits, region, category]
+  );
+
+  const sortedFiltered = useMemo(
+    () =>
+      [...filtered].sort((a, b) => {
+        const aDeadline = a.deadline ?? "";
+        const bDeadline = b.deadline ?? "";
+        if (aDeadline && bDeadline) return aDeadline < bDeadline ? -1 : 1;
+        if (aDeadline) return -1;
+        if (bDeadline) return 1;
+        return (b.popularity === "high" ? 1 : 0) - (a.popularity === "high" ? 1 : 0);
+      }),
+    [filtered]
+  );
+
+  const count = filtered.length;
+  const greeting =
+    count > 0
+      ? `받을 수 있는 혜택이 ${count}건 있어요`
+      : "조건에 맞는 혜택이 없어요. 필터를 바꿔 보세요.";
 
   return (
     <>
@@ -37,39 +48,25 @@ export function HomeContent({
         {mounted ? greeting : "혜택을 불러오는 중..."}
       </h1>
       <p className="mb-4 text-sm text-gray-500">
-        지역·나이·대상을 바꾸면 맞춤 혜택을 볼 수 있어요.
+        지역·대상을 선택하면 맞춤 혜택을 볼 수 있어요.
       </p>
 
       <div className="mb-6">
         <QuickFilter
           region={region}
-          age={age}
-          target={target}
-          onEdit={() => {}}
+          category={category}
+          onRegionChange={setRegion}
+          onCategoryChange={setCategory}
         />
       </div>
 
-      <div className="space-y-8">
-        <BenefitList
-          benefits={deadlineSoonBenefits.slice(0, 3)}
-          savedIds={savedIds}
-          onToggleSave={mounted ? toggleSaved : undefined}
-          sectionTitle="마감 임박"
-          showDeadline
-        />
-        <BenefitList
-          benefits={popularBenefits}
-          savedIds={savedIds}
-          onToggleSave={mounted ? toggleSaved : undefined}
-          sectionTitle="가장 인기 있는 혜택"
-        />
-        <BenefitList
-          benefits={allBenefits}
-          savedIds={savedIds}
-          onToggleSave={mounted ? toggleSaved : undefined}
-          sectionTitle="전체 추천"
-        />
-      </div>
+      <BenefitList
+        benefits={sortedFiltered}
+        savedIds={savedIds}
+        onToggleSave={mounted ? toggleSaved : undefined}
+        sectionTitle={region !== "전체" || category !== "전체" ? "필터 결과" : "전체 추천"}
+        showDeadline
+      />
     </>
   );
 }

@@ -17,7 +17,12 @@ export interface Benefit {
 
 /** 필터 상태 (홈 퀵 필터) */
 export interface FilterState {
-  region: string;
-  age: string;
-  target: string;
+  region: RegionFilter;
+  category: CategoryFilter;
 }
+
+export const REGION_OPTIONS = ["전체", "서울", "경기", "전국"] as const;
+export const CATEGORY_OPTIONS = ["전체", "청년", "부모/육아", "시니어"] as const;
+
+export type RegionFilter = (typeof REGION_OPTIONS)[number];
+export type CategoryFilter = (typeof CATEGORY_OPTIONS)[number];
