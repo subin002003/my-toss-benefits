@@ -31,7 +31,7 @@ export default async function BenefitDetailPage({ params }: PageProps) {
           뒤로
         </Link>
       </header>
-      <main className="mx-auto max-w-lg px-4 pb-10 pt-6">
+      <main className="mx-auto max-w-lg px-4 pb-36 pt-6">
         <div className="space-y-4">
           <BenefitSummary benefit={benefit} />
           <EligibilityCheck benefit={benefit} />
