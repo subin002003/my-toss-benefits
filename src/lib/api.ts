@@ -44,7 +44,7 @@ export function mapRawToBenefit(raw: RawServiceListItem): Benefit {
     deadline: undefined,
     eligibilityChecklist: [],
     requiredDocuments: [],
-    applicationUrl: raw.상세조회URL ?? undefined,
+    applicationUrl: raw.상세조회URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,
   };
 }
 
@@ -211,6 +211,6 @@ function mapDetailToBenefit(raw: RawServiceDetailItem): Benefit {
     category,
     eligibilityChecklist: [],
     requiredDocuments: docs,
-    applicationUrl: raw.온라인신청사이트URL ?? undefined,
+    applicationUrl: raw.온라인신청사이트URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,
   };
 }
