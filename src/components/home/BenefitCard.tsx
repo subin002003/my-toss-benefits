@@ -3,19 +3,56 @@
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
 import type { Benefit } from "@/lib/types";
+import { computeDDay } from "@/lib/parseDate";
 
 interface BenefitCardProps {
   benefit: Benefit;
   isSaved?: boolean;
   onToggleSave?: (benefit: Benefit) => void;
-  showDeadline?: boolean;
+}
+
+function DdayBadge({ dDay }: { dDay?: number | null }) {
+  if (dDay == null) return null;
+
+  if (dDay < 0) {
+    return (
+      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+        마감
+      </span>
+    );
+  }
+
+  if (dDay === 0) {
+    return (
+      <span className="animate-pulse rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+        D-Day
+      </span>
+    );
+  }
+
+  if (dDay <= 7) {
+    return (
+      <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-500">
+        D-{dDay}
+      </span>
+    );
+  }
+
+  if (dDay <= 30) {
+    return (
+      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+        D-{dDay}
+      </span>
+    );
+  }
+
+  return null;
 }
 
 export function BenefitCard({
   benefit,
   isSaved,
   onToggleSave,
-  showDeadline,
 }: BenefitCardProps) {
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -30,15 +67,11 @@ export function BenefitCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
               {benefit.serviceField || benefit.category}
             </span>
-            {showDeadline && benefit.deadline && (
-              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                마감 임박
-              </span>
-            )}
+            <DdayBadge dDay={computeDDay(benefit.deadline) ?? benefit.dDay} />
           </div>
           <h3 className="mt-1.5 text-base font-semibold text-gray-900">
             {benefit.title}

@@ -2,8 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Benefit } from "@/lib/types";
+import { computeDDay } from "@/lib/parseDate";
 
 const STORAGE_KEY = "toss-benefits-saved-v2";
+
+function refreshDDays(benefits: Benefit[]): Benefit[] {
+  return benefits.map((b) => ({
+    ...b,
+    dDay: computeDDay(b.deadline) ?? b.dDay ?? null,
+  }));
+}
 
 export function useSavedBenefits() {
   const [savedBenefits, setSavedBenefits] = useState<Benefit[]>([]);
@@ -17,7 +25,7 @@ export function useSavedBenefits() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          setSavedBenefits(parsed);
+          setSavedBenefits(refreshDDays(parsed));
         }
       }
     } catch {

@@ -12,6 +12,7 @@ export interface Benefit {
   popularity?: "high" | "medium" | "low";
   views?: number;
   deadline?: string;
+  dDay?: number | null;
   eligibilityChecklist: { question: string; answer: boolean }[];
   requiredDocuments: string[];
   applicationUrl?: string;
@@ -57,6 +58,7 @@ export const USER_TYPE_OPTIONS = [
 /** 정렬 옵션 */
 export const SORT_OPTIONS = [
   "인기순",
+  "마감임박순",
   "최신순",
   "이름순",
 ] as const;

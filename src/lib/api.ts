@@ -7,6 +7,7 @@ import type {
 } from "./api-types";
 import { MOCK_BENEFITS } from "./mock-benefits";
 import { parseEligibilityChecklist } from "./parseEligibility";
+import { parseDeadline, computeDDay } from "./parseDate";
 
 // ─── 설정 ────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ function normalizeUserType(raw: string): string {
 }
 
 export function mapRawToBenefit(raw: RawServiceListItem): Benefit {
+  const deadlineInfo = parseDeadline(raw.신청기한);
   return {
     id: raw.서비스ID,
     title: raw.서비스명,
@@ -42,7 +44,8 @@ export function mapRawToBenefit(raw: RawServiceListItem): Benefit {
     category: inferCategory(raw),
     popularity: raw.조회수 > 10000 ? "high" : raw.조회수 > 3000 ? "medium" : "low",
     views: raw.조회수 ?? 0,
-    deadline: undefined,
+    deadline: deadlineInfo ? deadlineInfo.deadlineDate.toISOString().slice(0, 10) : undefined,
+    dDay: deadlineInfo?.dDay ?? null,
     eligibilityChecklist: parseEligibilityChecklist(raw.지원대상, raw.선정기준),
     requiredDocuments: [],
     applicationUrl: raw.상세조회URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,
@@ -149,9 +152,13 @@ export async function fetchPublicBenefits(
   } catch (err) {
     const message = err instanceof Error ? err.message : "알 수 없는 오류";
     console.error("[fetchPublicBenefits]", message);
+    const enriched = MOCK_BENEFITS.map((b) => ({
+      ...b,
+      dDay: computeDDay(b.deadline) ?? null,
+    }));
     return {
-      benefits: MOCK_BENEFITS,
-      totalCount: MOCK_BENEFITS.length,
+      benefits: enriched,
+      totalCount: enriched.length,
       isFallback: true,
       error: message,
     };
@@ -164,7 +171,8 @@ export async function getBenefitByIdFromApi(
   id: string
 ): Promise<Benefit | undefined> {
   if (!API_KEY || API_KEY === "YOUR_SERVICE_KEY_HERE") {
-    return MOCK_BENEFITS.find((b) => b.id === id);
+    const b = MOCK_BENEFITS.find((b) => b.id === id);
+    return b ? { ...b, dDay: computeDDay(b.deadline) ?? null } : undefined;
   }
 
   try {
@@ -200,6 +208,8 @@ function mapDetailToBenefit(raw: RawServiceDetailItem): Benefit {
     .map((s) => s.trim())
     .filter((s) => s.length > 1 && s.length < 50);
 
+  const deadlineInfo = parseDeadline(raw.신청기한);
+
   return {
     id: raw.서비스ID,
     title: raw.서비스명,
@@ -210,6 +220,8 @@ function mapDetailToBenefit(raw: RawServiceDetailItem): Benefit {
     userType: "",
     target: (raw.지원대상 ?? "").slice(0, 100),
     category,
+    deadline: deadlineInfo ? deadlineInfo.deadlineDate.toISOString().slice(0, 10) : undefined,
+    dDay: deadlineInfo?.dDay ?? null,
     eligibilityChecklist: parseEligibilityChecklist(raw.지원대상, raw.선정기준),
     requiredDocuments: docs,
     applicationUrl: raw.온라인신청사이트URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,

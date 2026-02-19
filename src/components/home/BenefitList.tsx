@@ -9,7 +9,6 @@ interface BenefitListProps {
   savedIds?: string[];
   onToggleSave?: (benefit: Benefit) => void;
   sectionTitle?: string;
-  showDeadline?: boolean;
 }
 
 export function BenefitList({
@@ -17,7 +16,6 @@ export function BenefitList({
   savedIds = [],
   onToggleSave,
   sectionTitle,
-  showDeadline = false,
 }: BenefitListProps) {
   if (benefits.length === 0) {
     return (
@@ -58,7 +56,6 @@ export function BenefitList({
                 benefit={benefit}
                 isSaved={savedIds.includes(benefit.id)}
                 onToggleSave={onToggleSave}
-                showDeadline={showDeadline}
               />
             </motion.li>
           ))}

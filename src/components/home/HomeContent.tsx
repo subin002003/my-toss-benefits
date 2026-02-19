@@ -83,7 +83,6 @@ export function HomeContent({
         benefits={benefits}
         savedIds={savedIds}
         onToggleSave={mounted ? toggleSaved : undefined}
-        showDeadline
       />
 
       <Pagination

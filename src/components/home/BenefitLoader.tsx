@@ -19,6 +19,15 @@ function sortBenefits(benefits: Benefit[], sort: SortOption): Benefit[] {
   switch (sort) {
     case "인기순":
       return sorted.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+    case "마감임박순":
+      return sorted.sort((a, b) => {
+        const aValid = a.dDay != null && a.dDay >= 0;
+        const bValid = b.dDay != null && b.dDay >= 0;
+        if (aValid && bValid) return a.dDay! - b.dDay!;
+        if (aValid) return -1;
+        if (bValid) return 1;
+        return 0;
+      });
     case "최신순":
       return sorted;
     case "이름순":
