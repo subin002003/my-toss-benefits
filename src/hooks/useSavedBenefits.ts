@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Benefit } from "@/lib/types";
 import { computeDDay } from "@/lib/parseDate";
-
-const STORAGE_KEY = "toss-benefits-saved-v2";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 function refreshDDays(benefits: Benefit[]): Benefit[] {
   return benefits.map((b) => ({
@@ -21,7 +20,7 @@ export function useSavedBenefits() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEYS.SAVED_BENEFITS);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -37,7 +36,7 @@ export function useSavedBenefits() {
   const persist = useCallback((benefits: Benefit[]) => {
     setSavedBenefits(benefits);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(benefits));
+      localStorage.setItem(STORAGE_KEYS.SAVED_BENEFITS, JSON.stringify(benefits));
     } catch {
       // ignore
     }

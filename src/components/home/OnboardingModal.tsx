@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FIELD_OPTIONS, type FieldFilter } from "@/lib/types";
 import { buildFilterUrl } from "@/lib/url-helpers";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-const STORAGE_KEY = "toss-benefits-onboarded";
+const TOTAL_STEPS = 3;
 
 const ONBOARDING_USER_TYPES = [
   "청년",
@@ -53,31 +54,38 @@ const slideVariants = {
 
 export function OnboardingModal() {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
+  const [nickname, setNickname] = useState("");
   const [selectedUserType, setSelectedUserType] =
     useState<OnboardingUserType | null>(null);
   const [selectedField, setSelectedField] = useState<FieldFilter>("전체");
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (!localStorage.getItem(STORAGE_KEYS.ONBOARDED)) {
       setVisible(true);
     }
   }, []);
 
-  function handleNext() {
-    setDirection(1);
-    setStep(2);
-  }
+  useEffect(() => {
+    if (step === 1 && visible) {
+      setTimeout(() => inputRef.current?.focus(), 350);
+    }
+  }, [step, visible]);
 
-  function handleBack() {
-    setDirection(-1);
-    setStep(1);
+  function goTo(target: number) {
+    setDirection(target > step ? 1 : -1);
+    setStep(target);
   }
 
   function handleComplete() {
-    localStorage.setItem(STORAGE_KEY, "1");
+    localStorage.setItem(STORAGE_KEYS.ONBOARDED, "1");
+    const trimmed = nickname.trim();
+    if (trimmed) {
+      localStorage.setItem(STORAGE_KEYS.NICKNAME, trimmed);
+    }
     setVisible(false);
 
     const apiUserType = selectedUserType
@@ -86,7 +94,10 @@ export function OnboardingModal() {
 
     router.push(
       buildFilterUrl({
-        userType: apiUserType === "전체" ? undefined : (apiUserType as "개인" | "가구" | "법인/단체"),
+        userType:
+          apiUserType === "전체"
+            ? undefined
+            : (apiUserType as "개인" | "가구" | "법인/단체"),
         field: selectedField === "전체" ? undefined : selectedField,
       }),
     );
@@ -112,22 +123,22 @@ export function OnboardingModal() {
       >
         {/* 상단 진행 표시 */}
         <div className="flex gap-2 px-6 pt-6">
-          <div
-            className="h-1 flex-1 rounded-full transition-colors"
-            style={{ backgroundColor: "var(--toss-blue)" }}
-          />
-          <div
-            className="h-1 flex-1 rounded-full transition-colors"
-            style={{
-              backgroundColor: step >= 2 ? "var(--toss-blue)" : "#E5E7EB",
-            }}
-          />
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+            <div
+              key={i}
+              className="h-1 flex-1 rounded-full transition-colors"
+              style={{
+                backgroundColor:
+                  step >= i + 1 ? "var(--toss-blue)" : "#E5E7EB",
+              }}
+            />
+          ))}
         </div>
 
         {/* 슬라이드 컨텐츠 영역 */}
         <div className="relative min-h-[360px]">
           <AnimatePresence mode="wait" custom={direction}>
-            {step === 1 ? (
+            {step === 1 && (
               <motion.div
                 key="step1"
                 custom={direction}
@@ -138,9 +149,66 @@ export function OnboardingModal() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="px-6 pt-5"
               >
-                <p className="text-sm font-medium text-gray-400">
-                  1단계
+                <p className="text-sm font-medium text-gray-400">1단계</p>
+                <h2 className="mt-1 text-xl font-bold text-gray-900">
+                  어떻게 불러드릴까요?
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  닉네임을 입력해 주시면 맞춤 인사를 드릴게요.
                 </p>
+
+                <div className="mt-8">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") goTo(2);
+                    }}
+                    placeholder="예) 홍길동"
+                    maxLength={10}
+                    className="w-full border-b-2 border-gray-200 bg-transparent pb-3 text-2xl font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-300 focus:border-[var(--toss-blue)]"
+                  />
+                  <p className="mt-2 text-xs text-gray-400">
+                    최대 10자 · 건너뛰면 기본 인사말이 표시돼요
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                key="step2"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="px-6 pt-5"
+              >
+                <button
+                  type="button"
+                  onClick={() => goTo(1)}
+                  className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-400 transition-colors hover:text-gray-600"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                  이전
+                </button>
+                <p className="text-sm font-medium text-gray-400">2단계</p>
                 <h2 className="mt-1 text-xl font-bold text-gray-900">
                   어떤 분을 위한 혜택을 찾으세요?
                 </h2>
@@ -174,9 +242,11 @@ export function OnboardingModal() {
                   ))}
                 </div>
               </motion.div>
-            ) : (
+            )}
+
+            {step === 3 && (
               <motion.div
-                key="step2"
+                key="step3"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -187,7 +257,7 @@ export function OnboardingModal() {
               >
                 <button
                   type="button"
-                  onClick={handleBack}
+                  onClick={() => goTo(2)}
                   className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-400 transition-colors hover:text-gray-600"
                 >
                   <svg
@@ -205,9 +275,7 @@ export function OnboardingModal() {
                   </svg>
                   이전
                 </button>
-                <p className="text-sm font-medium text-gray-400">
-                  2단계
-                </p>
+                <p className="text-sm font-medium text-gray-400">3단계</p>
                 <h2 className="mt-1 text-xl font-bold text-gray-900">
                   어떤 분야에 관심 있으세요?
                 </h2>
@@ -248,10 +316,10 @@ export function OnboardingModal() {
         {/* 하단 버튼 영역 */}
         <div className="px-6 pb-8">
           <div className="flex flex-col gap-3">
-            {step === 1 ? (
+            {step < TOTAL_STEPS ? (
               <button
                 type="button"
-                onClick={handleNext}
+                onClick={() => goTo(step + 1)}
                 className="h-14 w-full rounded-2xl font-semibold text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: "var(--toss-blue)" }}
               >
