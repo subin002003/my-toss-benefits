@@ -30,8 +30,17 @@ export function EligibilityCheck({ benefit }: EligibilityCheckProps) {
         나는 대상인가요?
       </h2>
       <p className="mt-1 text-sm text-gray-500">
-        질문에 맞게 네/아니오를 선택해 보세요.
+        아래 기준을 참고하여 네/아니오를 선택해 보세요.
       </p>
+
+      {benefit.target && (
+        <div className="mt-3 rounded-xl bg-blue-50 px-4 py-3">
+          <p className="text-xs font-medium text-blue-600">지원 대상 안내</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-gray-700">
+            {benefit.target}
+          </p>
+        </div>
+      )}
 
       <ul className="mt-5 space-y-4">
         {benefit.eligibilityChecklist.map((item, i) => (
@@ -81,6 +90,14 @@ export function EligibilityCheck({ benefit }: EligibilityCheckProps) {
             style={{ color: "var(--toss-blue)" }}
           >
             축하합니다! 지원 대상일 확률이 높아요
+          </p>
+        </div>
+      )}
+
+      {allAnswered && !allYes && (
+        <div className="mt-5 flex items-center gap-3 rounded-2xl bg-gray-50 p-4">
+          <p className="text-sm font-medium text-gray-500">
+            일부 조건이 맞지 않을 수 있어요. 상세 자격은 신청 페이지에서 확인해 보세요.
           </p>
         </div>
       )}

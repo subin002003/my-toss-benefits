@@ -6,6 +6,7 @@ import type {
   ServiceDetailResponse,
 } from "./api-types";
 import { MOCK_BENEFITS } from "./mock-benefits";
+import { parseEligibilityChecklist } from "./parseEligibility";
 
 // ─── 설정 ────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ export function mapRawToBenefit(raw: RawServiceListItem): Benefit {
     popularity: raw.조회수 > 10000 ? "high" : raw.조회수 > 3000 ? "medium" : "low",
     views: raw.조회수 ?? 0,
     deadline: undefined,
-    eligibilityChecklist: [],
+    eligibilityChecklist: parseEligibilityChecklist(raw.지원대상, raw.선정기준),
     requiredDocuments: [],
     applicationUrl: raw.상세조회URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,
   };
@@ -209,7 +210,7 @@ function mapDetailToBenefit(raw: RawServiceDetailItem): Benefit {
     userType: "",
     target: (raw.지원대상 ?? "").slice(0, 100),
     category,
-    eligibilityChecklist: [],
+    eligibilityChecklist: parseEligibilityChecklist(raw.지원대상, raw.선정기준),
     requiredDocuments: docs,
     applicationUrl: raw.온라인신청사이트URL || `https://www.gov.kr/portal/rcvfvrSvc/dtlEx/${raw.서비스ID}`,
   };
