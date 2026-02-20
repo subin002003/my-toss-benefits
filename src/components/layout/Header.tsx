@@ -11,8 +11,8 @@ export function Header() {
         <Image
           src="/logo.png"
           alt="혜택 알리미 로고"
-          width={36}
-          height={36}
+          width={28}
+          height={28}
           className="rounded-sm"
         />
         <span className="text-lg font-bold text-gray-900">내게 맞는 혜택 알리미</span>

@@ -18,7 +18,12 @@ const SITE_URL = "https://my-toss-benefits.vercel.app";
 export const metadata: Metadata = {
   title: "내게 맞는 혜택 알리미",
   description: "몰라서 놓친 숨은 정부 지원금을 찾아드려요.",
-  icons: { icon: "/favicon.ico" },
+  themeColor: "#3182f6",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     title: "내게 맞는 혜택 알리미",
     description:
