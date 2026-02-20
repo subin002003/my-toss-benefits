@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Pencil, Check } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Pencil, Check, BookmarkCheck } from "lucide-react";
 import { useSavedBenefits } from "@/hooks/useSavedBenefits";
 import { QuickFilter } from "./QuickFilter";
 import { SortSelector } from "./SortSelector";
@@ -15,6 +16,25 @@ import type {
   SortOption,
 } from "@/lib/types";
 import { STORAGE_KEYS } from "@/lib/constants";
+
+const TOAST_DURATION_MS = 2500;
+
+function SaveToast({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className="fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-lg"
+    >
+      <div className="flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3 shadow-lg">
+        <BookmarkCheck className="h-4 w-4 shrink-0 text-white" />
+        <p className="text-sm font-medium text-white">{message}</p>
+      </div>
+    </motion.div>
+  );
+}
 
 interface HomeContentProps {
   benefits: Benefit[];
@@ -39,11 +59,36 @@ export function HomeContent({
   keyword,
   sort,
 }: HomeContentProps) {
-  const { savedIds, toggleSaved, mounted } = useSavedBenefits();
+  const { savedIds, toggleSaved, isSaved, mounted } = useSavedBenefits();
   const [nickname, setNickname] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const editRef = useRef<HTMLInputElement>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearToastTimer();
+  }, [clearToastTimer]);
+
+  const handleToggleSave = useCallback(
+    (benefit: Benefit) => {
+      const willSave = !isSaved(benefit.id);
+      toggleSaved(benefit);
+
+      clearToastTimer();
+      setToast(willSave ? "찜 목록에 추가했어요" : "찜 목록에서 제거했어요");
+      toastTimerRef.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    },
+    [toggleSaved, isSaved, clearToastTimer],
+  );
 
   useEffect(() => {
     setNickname(localStorage.getItem(STORAGE_KEYS.NICKNAME));
@@ -161,7 +206,7 @@ export function HomeContent({
       <BenefitList
         benefits={benefits}
         savedIds={savedIds}
-        onToggleSave={mounted ? toggleSaved : undefined}
+        onToggleSave={mounted ? handleToggleSave : undefined}
       />
 
       <Pagination
@@ -173,6 +218,10 @@ export function HomeContent({
         keyword={keyword}
         sort={sort}
       />
+
+      <AnimatePresence>
+        {toast && <SaveToast message={toast} />}
+      </AnimatePresence>
     </>
   );
 }

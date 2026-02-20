@@ -1,14 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { ExternalLink, Bookmark, Share2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ExternalLink, Bookmark, BookmarkCheck, Share2 } from "lucide-react";
 import { ShareSheet } from "./ShareSheet";
 import type { Benefit } from "@/lib/types";
+
+const TOAST_DURATION_MS = 2500;
 
 interface ActionButtonsProps {
   benefit: Benefit;
   isSaved?: boolean;
   onToggleSave?: (benefit: Benefit) => void;
+}
+
+function SaveToast({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-lg"
+    >
+      <div className="flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3 shadow-lg">
+        <BookmarkCheck className="h-4 w-4 shrink-0 text-white" />
+        <p className="text-sm font-medium text-white">{message}</p>
+      </div>
+    </motion.div>
+  );
 }
 
 export function ActionButtons({
@@ -17,6 +37,31 @@ export function ActionButtons({
   onToggleSave,
 }: ActionButtonsProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, [clearTimer]);
+
+  function handleToggleSave() {
+    if (!onToggleSave) return;
+    const message = isSaved
+      ? "찜 목록에서 제거했어요"
+      : "찜 목록에 추가했어요";
+    onToggleSave(benefit);
+
+    clearTimer();
+    setToast(message);
+    timerRef.current = setTimeout(() => setToast(null), TOAST_DURATION_MS);
+  }
 
   async function handleShare() {
     const shareData = {
@@ -59,7 +104,7 @@ export function ActionButtons({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => onToggleSave?.(benefit)}
+              onClick={handleToggleSave}
               className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 font-medium transition-colors hover:bg-gray-50"
               style={{ borderColor: "var(--toss-blue)", color: "var(--toss-blue)" }}
             >
@@ -81,6 +126,10 @@ export function ActionButtons({
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {toast && <SaveToast message={toast} />}
+      </AnimatePresence>
 
       <ShareSheet
         open={shareOpen}

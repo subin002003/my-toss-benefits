@@ -16,6 +16,7 @@ export interface Benefit {
   eligibilityChecklist: { question: string; answer: boolean }[];
   requiredDocuments: string[];
   applicationUrl?: string;
+  isCompleted?: boolean;
 }
 
 /** 필터: 서비스분야 — 대분류 */
