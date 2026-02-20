@@ -13,15 +13,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://my-toss-benefits.vercel.app";
+
 export const metadata: Metadata = {
   title: "내게 맞는 혜택 알리미",
   description: "몰라서 놓친 숨은 정부 지원금을 찾아드려요.",
+  icons: { icon: "/favicon.ico" },
   openGraph: {
     title: "내게 맞는 혜택 알리미",
-    description: "내게 맞는 혜택 알리미 - 앱인토스 맞춤형 정부 혜택 조회 서비스",
-    url: "https://my-toss-benefits.vercel.app/",
+    description:
+      "내게 맞는 혜택 알리미 - 앱인토스 맞춤형 정부 혜택 조회 서비스",
+    url: SITE_URL,
     siteName: "내게 맞는 혜택 알리미",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    images: [
+      { url: `${SITE_URL}/og-image.png`, width: 1200, height: 630 },
+    ],
     type: "website",
     locale: "ko_KR",
   },
