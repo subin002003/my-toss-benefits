@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getBenefitByIdFromApi } from "@/lib/api";
 import { BenefitSummary } from "@/components/benefit/BenefitSummary";
+import { PushAlarmToggle } from "@/components/benefit/PushAlarmToggle";
 import { EligibilityCheck } from "@/components/benefit/EligibilityCheck";
 import { RequiredDocuments } from "@/components/benefit/RequiredDocuments";
 import { BenefitDetailClient } from "@/components/benefit/BenefitDetailClient";
@@ -33,6 +34,7 @@ export default async function BenefitDetailPage({ params }: PageProps) {
       <main className="mx-auto max-w-lg px-4 pb-36 pt-6">
         <div className="space-y-4">
           <BenefitSummary benefit={benefit} />
+          <PushAlarmToggle benefitId={benefit.id} />
           {benefit.eligibilityChecklist.length > 0 && (
             <EligibilityCheck benefit={benefit} />
           )}

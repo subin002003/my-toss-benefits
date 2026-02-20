@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, CheckCircle2, Shield } from "lucide-react";
 import { FIELD_OPTIONS, type FieldFilter } from "@/lib/types";
 import { buildFilterUrl } from "@/lib/url-helpers";
 import { STORAGE_KEYS } from "@/lib/constants";
@@ -62,6 +63,30 @@ export function OnboardingModal() {
   const [selectedUserType, setSelectedUserType] =
     useState<OnboardingUserType | null>(null);
   const [selectedField, setSelectedField] = useState<FieldFilter>("전체");
+  const [authState, setAuthState] = useState<
+    "idle" | "loading" | "success"
+  >("idle");
+
+  const handleTossAuth = useCallback(() => {
+    if (authState !== "idle") return;
+    setAuthState("loading");
+
+    setTimeout(() => {
+      setAuthState("success");
+      setNickname("토스회원");
+      setSelectedUserType("청년");
+      setSelectedField("주거·자립");
+
+      setTimeout(() => {
+        localStorage.setItem(STORAGE_KEYS.ONBOARDED, "1");
+        localStorage.setItem(STORAGE_KEYS.NICKNAME, "토스회원");
+        setVisible(false);
+        router.push(
+          buildFilterUrl({ userType: "개인", field: "주거·자립" }),
+        );
+      }, 600);
+    }, 1500);
+  }, [authState, router]);
 
   useEffect(() => {
     if (!localStorage.getItem(STORAGE_KEYS.ONBOARDED)) {
@@ -149,6 +174,60 @@ export function OnboardingModal() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="px-6 pt-5"
               >
+                {/* 토스 인증 Mock 버튼 */}
+                <motion.button
+                  type="button"
+                  onClick={handleTossAuth}
+                  disabled={authState !== "idle"}
+                  whileTap={authState === "idle" ? { scale: 0.97 } : undefined}
+                  className="mb-6 flex w-full items-center justify-center gap-2.5 rounded-2xl p-4 font-semibold text-white transition-opacity disabled:opacity-80"
+                  style={{ backgroundColor: "var(--toss-blue)" }}
+                >
+                  <AnimatePresence mode="wait">
+                    {authState === "idle" && (
+                      <motion.span
+                        key="idle"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Shield className="h-5 w-5" />
+                        토스 인증으로 3초 만에 혜택 찾기
+                      </motion.span>
+                    )}
+                    {authState === "loading" && (
+                      <motion.span
+                        key="loading"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        정보를 불러오는 중...
+                      </motion.span>
+                    )}
+                    {authState === "success" && (
+                      <motion.span
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle2 className="h-5 w-5" />
+                        인증 완료!
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+
+                <div className="relative mb-6 flex items-center">
+                  <div className="flex-1 border-t border-gray-200" />
+                  <span className="px-3 text-xs text-gray-400">또는 직접 입력</span>
+                  <div className="flex-1 border-t border-gray-200" />
+                </div>
+
                 <p className="text-sm font-medium text-gray-400">1단계</p>
                 <h2 className="mt-1 text-xl font-bold text-gray-900">
                   어떻게 불러드릴까요?
@@ -157,7 +236,7 @@ export function OnboardingModal() {
                   닉네임을 입력해 주시면 맞춤 인사를 드릴게요.
                 </p>
 
-                <div className="mt-8">
+                <div className="mt-6">
                   <input
                     ref={inputRef}
                     type="text"
@@ -319,8 +398,9 @@ export function OnboardingModal() {
             {step < TOTAL_STEPS ? (
               <button
                 type="button"
+                disabled={authState !== "idle"}
                 onClick={() => goTo(step + 1)}
-                className="h-14 w-full rounded-2xl font-semibold text-white transition-opacity hover:opacity-90"
+                className="h-14 w-full rounded-2xl font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: "var(--toss-blue)" }}
               >
                 다음
@@ -339,8 +419,9 @@ export function OnboardingModal() {
             )}
             <button
               type="button"
+              disabled={authState !== "idle"}
               onClick={handleSkip}
-              className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-600"
+              className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-600 disabled:opacity-30"
             >
               건너뛰기
             </button>
