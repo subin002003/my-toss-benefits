@@ -3,12 +3,100 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bookmark, CheckCircle2, Circle, Trash2, Undo2 } from "lucide-react";
+import {
+  Bookmark,
+  CheckCircle2,
+  Circle,
+  Trash2,
+  Undo2,
+  SearchX,
+  ArrowRightCircle,
+} from "lucide-react";
 import { useSavedBenefits } from "@/hooks/useSavedBenefits";
 import { computeDDay } from "@/lib/parseDate";
 import type { Benefit } from "@/lib/types";
 
 const UNDO_TIMEOUT_MS = 4000;
+const STATUS_TOAST_MS = 2000;
+
+type StatusFilter = "전체" | "진행 중" | "신청 완료";
+const STATUS_TABS: StatusFilter[] = ["전체", "진행 중", "신청 완료"];
+
+/* ─── Sub-components ─── */
+
+function StatusTabs({
+  value,
+  onChange,
+  counts,
+}: {
+  value: StatusFilter;
+  onChange: (v: StatusFilter) => void;
+  counts: Record<StatusFilter, number>;
+}) {
+  return (
+    <div className="flex gap-2">
+      {STATUS_TABS.map((tab) => {
+        const active = tab === value;
+        return (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => onChange(tab)}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+              active
+                ? "text-white shadow-sm"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            style={active ? { backgroundColor: "var(--toss-blue)" } : undefined}
+          >
+            {tab}
+            <span
+              className={`ml-1 text-xs ${active ? "text-white/80" : "text-gray-400"}`}
+            >
+              {counts[tab]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CategoryChips({
+  categories,
+  value,
+  onChange,
+}: {
+  categories: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (categories.length <= 1) return null;
+
+  return (
+    <div className="-mx-4 overflow-x-auto px-4 scrollbar-none">
+      <div className="flex gap-2 pb-1">
+        {["전체", ...categories].map((cat) => {
+          const active = cat === value;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => onChange(cat)}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                active
+                  ? "border-blue-200 bg-blue-50 text-blue-600"
+                  : "border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {cat}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function CompletionToggle({
   checked,
@@ -109,6 +197,23 @@ function UndoToast({
   );
 }
 
+function StatusToast({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 30 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className="fixed bottom-6 left-4 right-4 z-50 mx-auto max-w-lg"
+    >
+      <div className="flex items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 py-3 shadow-lg">
+        <ArrowRightCircle className="h-4 w-4 shrink-0 text-white" />
+        <p className="text-sm font-medium text-white">{message}</p>
+      </div>
+    </motion.div>
+  );
+}
+
 function SavedBenefitCard({
   benefit,
   onRemove,
@@ -184,6 +289,8 @@ function SavedBenefitCard({
   );
 }
 
+/* ─── Main component ─── */
+
 export function SavedContent() {
   const {
     savedBenefits,
@@ -193,9 +300,12 @@ export function SavedContent() {
     mounted,
   } = useSavedBenefits();
 
-  const [showCompleted, setShowCompleted] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("전체");
+  const [categoryFilter, setCategoryFilter] = useState("전체");
   const [removedItem, setRemovedItem] = useState<Benefit | null>(null);
+  const [statusToast, setStatusToast] = useState<string | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndoTimer = useCallback(() => {
     if (undoTimerRef.current) {
@@ -204,9 +314,19 @@ export function SavedContent() {
     }
   }, []);
 
+  const clearStatusToast = useCallback(() => {
+    if (statusToastRef.current) {
+      clearTimeout(statusToastRef.current);
+      statusToastRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    return () => clearUndoTimer();
-  }, [clearUndoTimer]);
+    return () => {
+      clearUndoTimer();
+      clearStatusToast();
+    };
+  }, [clearUndoTimer, clearStatusToast]);
 
   const handleRemove = useCallback(
     (benefit: Benefit) => {
@@ -230,14 +350,74 @@ export function SavedContent() {
     }
   }, [removedItem, restoreSaved, clearUndoTimer]);
 
-  const { pending, completed } = useMemo(() => {
-    const p: Benefit[] = [];
-    const c: Benefit[] = [];
+  const handleToggleCompleted = useCallback(
+    (id: string) => {
+      const target = savedBenefits.find((b) => b.id === id);
+      if (!target) return;
+
+      const willComplete = !target.isCompleted;
+      toggleCompleted(id);
+
+      if (statusFilter !== "전체") {
+        clearStatusToast();
+        setStatusToast(
+          willComplete ? "신청 완료로 이동했어요" : "진행 중으로 이동했어요",
+        );
+        statusToastRef.current = setTimeout(
+          () => setStatusToast(null),
+          STATUS_TOAST_MS,
+        );
+      }
+    },
+    [savedBenefits, toggleCompleted, statusFilter, clearStatusToast],
+  );
+
+  const statusCounts = useMemo<Record<StatusFilter, number>>(() => {
+    let pending = 0;
+    let done = 0;
     for (const b of savedBenefits) {
-      (b.isCompleted ? c : p).push(b);
+      if (b.isCompleted) done++;
+      else pending++;
     }
-    return { pending: p, completed: c };
+    return { "전체": savedBenefits.length, "진행 중": pending, "신청 완료": done };
   }, [savedBenefits]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of savedBenefits) {
+      const field = b.serviceField || b.category;
+      if (field) set.add(field);
+    }
+    return Array.from(set).sort();
+  }, [savedBenefits]);
+
+  useEffect(() => {
+    if (categoryFilter !== "전체" && !categories.includes(categoryFilter)) {
+      setCategoryFilter("전체");
+    }
+  }, [categories, categoryFilter]);
+
+  const filteredBenefits = useMemo(() => {
+    let list = savedBenefits;
+
+    if (statusFilter === "진행 중") {
+      list = list.filter((b) => !b.isCompleted);
+    } else if (statusFilter === "신청 완료") {
+      list = list.filter((b) => !!b.isCompleted);
+    }
+
+    if (categoryFilter !== "전체") {
+      list = list.filter(
+        (b) => (b.serviceField || b.category) === categoryFilter,
+      );
+    }
+
+    return [...list].sort((a, b) => {
+      if (a.isCompleted && !b.isCompleted) return 1;
+      if (!a.isCompleted && b.isCompleted) return -1;
+      return 0;
+    });
+  }, [savedBenefits, statusFilter, categoryFilter]);
 
   if (!mounted) {
     return (
@@ -275,98 +455,78 @@ export function SavedContent() {
   return (
     <>
       <h1 className="mb-1 text-xl font-bold text-gray-900">저장함</h1>
-      <p className="mb-6 text-sm text-gray-500">
+      <p className="mb-4 text-sm text-gray-500">
         관심 있는 혜택 {savedBenefits.length}건
-        {completed.length > 0 && (
+        {statusCounts["신청 완료"] > 0 && (
           <span className="ml-1" style={{ color: "var(--toss-blue)" }}>
-            · 신청 완료 {completed.length}건
+            · 신청 완료 {statusCounts["신청 완료"]}건
           </span>
         )}
       </p>
 
-      {/* 진행 중 */}
-      <ul className="flex flex-col gap-3">
-        <AnimatePresence mode="popLayout">
-          {pending.map((benefit) => (
-            <motion.li
-              key={benefit.id}
-              layout
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <SavedBenefitCard
-                benefit={benefit}
-                onRemove={handleRemove}
-                onToggleCompleted={toggleCompleted}
-              />
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </ul>
+      {/* 상태 필터 */}
+      <div className="mb-3">
+        <StatusTabs
+          value={statusFilter}
+          onChange={setStatusFilter}
+          counts={statusCounts}
+        />
+      </div>
 
-      {/* 신청 완료 섹션 */}
-      {completed.length > 0 && (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={() => setShowCompleted(!showCompleted)}
-            className="mb-3 flex items-center gap-1 text-sm font-medium text-gray-400 transition-colors hover:text-gray-600"
-          >
-            신청 완료 {completed.length}건
-            <svg
-              className={`h-4 w-4 transition-transform ${showCompleted ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+      {/* 카테고리 필터 */}
+      <div className="mb-5">
+        <CategoryChips
+          categories={categories}
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+        />
+      </div>
 
-          <AnimatePresence>
-            {showCompleted && (
-              <motion.ul
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="flex flex-col gap-3 overflow-hidden"
+      {/* 필터 결과 리스트 */}
+      {filteredBenefits.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white py-14 text-center"
+        >
+          <SearchX className="mx-auto mb-3 h-9 w-9 text-gray-300" />
+          <p className="text-gray-500">해당하는 혜택이 없어요</p>
+          <p className="mt-1 text-sm text-gray-400">
+            다른 필터 조건을 선택해 보세요.
+          </p>
+        </motion.div>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          <AnimatePresence mode="popLayout">
+            {filteredBenefits.map((benefit) => (
+              <motion.li
+                key={benefit.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
               >
-                <AnimatePresence mode="popLayout">
-                  {completed.map((benefit) => (
-                    <motion.li
-                      key={benefit.id}
-                      layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <SavedBenefitCard
-                        benefit={benefit}
-                        onRemove={handleRemove}
-                        onToggleCompleted={toggleCompleted}
-                      />
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-              </motion.ul>
-            )}
+                <SavedBenefitCard
+                  benefit={benefit}
+                  onRemove={handleRemove}
+                  onToggleCompleted={handleToggleCompleted}
+                />
+              </motion.li>
+            ))}
           </AnimatePresence>
-        </div>
+        </ul>
       )}
 
-      {/* Undo 토스트 */}
+      {/* 토스트 */}
       <AnimatePresence>
         {removedItem && (
           <UndoToast title={removedItem.title} onUndo={handleUndo} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {!removedItem && statusToast && (
+          <StatusToast message={statusToast} />
         )}
       </AnimatePresence>
     </>
