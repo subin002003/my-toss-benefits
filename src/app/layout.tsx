@@ -14,8 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "우리 동네 혜택 알리미",
-  description: "받을 수 있는 국가·지자체 보조금을 쉽고 빠르게 찾아보세요.",
+  title: "내게 맞는 혜택 알리미",
+  description: "몰라서 놓친 숨은 정부 지원금을 찾아드려요.",
+  openGraph: {
+    title: "내게 맞는 혜택 알리미",
+    description: "내게 맞는 혜택 알리미 - 앱인토스 맞춤형 정부 혜택 조회 서비스",
+    url: "https://my-toss-benefits.vercel.app/",
+    siteName: "내게 맞는 혜택 알리미",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+    locale: "ko_KR",
+  },
 };
 
 export default function RootLayout({
